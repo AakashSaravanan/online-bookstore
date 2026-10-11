@@ -4,16 +4,20 @@ const dns = require("dns");
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 const express = require("express");
+const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const bookRoutes = require("./routes/bookRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
 
+app.use(cors());            //Enable Cross-Origin Resource Sharing (CORS) to allow requests from different origins.
 app.use(express.json());    //Express will understand JSON requests bodies.
 
-app.use("/api/auth", authRoutes);   //Tell Express where these routes belong.
-app.use("/api/books", bookRoutes);
+app.use("/api/auth", authRoutes);       //Tell Express where these routes belong
+app.use("/api/books", bookRoutes);      // Handles all book-related API requests
+app.use("/api/orders", orderRoutes);    // Handles all order-related API requests
 
 const PORT = 5000;
 
