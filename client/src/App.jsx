@@ -11,6 +11,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Admin from "./pages/Admin";
+import MyOrders from "./pages/MyOrders";
+import AdminOrders from "./pages/AdminOrders";
 
 function App() {
   return (
@@ -51,6 +53,22 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-orders"
+          element={
+            <ProtectedRoute>
+              <MyOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminOrders />
             </ProtectedRoute>
           }
         />

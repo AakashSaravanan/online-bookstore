@@ -1,17 +1,14 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { loadCart, clearCart } from "../utils/cart";
 
 // Displays checkout details and submits the order to the backend.
 function Checkout() {
   const navigate = useNavigate();
 
   // Load the cart saved in the browser
-  const [cartItems] = useState(() => {
-    const savedCart = localStorage.getItem("cart");
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
-
+  const [cartItems] = useState(() => loadCart());
   // Store the customer's shipping information
   const [formData, setFormData] = useState({
     name: "",
@@ -101,7 +98,7 @@ function Checkout() {
       }
 
       // Clear the cart only after the backend confirms success
-      localStorage.removeItem("cart");
+      clearCart();
 
       // Open the confirmation page with the saved order
       navigate("/order-confirmation", {

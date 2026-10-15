@@ -55,6 +55,9 @@ function Navbar() {
 
         {isLoggedIn ? (
           <>
+
+            <Link to="/my-orders">My Orders</Link>{" "}
+
             {userRole === "admin" && (
               <Link to="/admin">Admin</Link>
             )}

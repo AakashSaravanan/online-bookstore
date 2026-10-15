@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const API_URL = "http://localhost:5000/api/books";
 
@@ -225,6 +226,9 @@ function Admin() {
   return (
     <main style={{ maxWidth: "1100px", margin: "30px auto", padding: "20px" }}>
       <h1>Admin Dashboard</h1>
+      <p>
+        <Link to="/admin/orders">Manage Customer Orders</Link>
+      </p>
       <p>Manage your bookstore's books and inventory.</p>
 
       {error && <p role="alert" style={{ color: "red" }}>{error}</p>}

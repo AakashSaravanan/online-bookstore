@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import { loadCart, saveCart } from "../utils/cart";
+
 function BookDetails() {
   // Get the book ID from the URL
   const { id } = useParams();
@@ -40,10 +42,16 @@ function BookDetails() {
   }, [id]);
   
 // Add the book to the cart and navigate to the cart page  
-const handleAddToCart = () => { 
-  const savedCart = localStorage.getItem("cart");
-  const currentItems = savedCart ? JSON.parse(savedCart) : [];
+const handleAddToCart = () => {
+  // Require login before adding a book to a cart.
+  if (!localStorage.getItem("token")) {
+    navigate("/login", {
+      state: { from: `/books/${book._id}` },
+    });
+    return;
+  }
 
+  const currentItems = loadCart();
   const existingItem = currentItems.find(
     (item) => item._id === book._id
   );
@@ -63,9 +71,9 @@ const handleAddToCart = () => {
     updatedCart = [...currentItems, { ...book, quantity: 1 }];
   }
 
-  localStorage.setItem("cart", JSON.stringify(updatedCart));
-
+  saveCart(updatedCart);
   setCartMessage("Added to cart successfully!");
+
   setTimeout(() => {
     setCartMessage("");
   }, 3000);

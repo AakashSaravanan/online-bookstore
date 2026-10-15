@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 // Login page for existing users
 
 function Login() {
-    // Used to navigate to another page after login
-    const navigate = useNavigate();
-    // Store the email entered by the user
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Store the email entered by the user
   const [email, setEmail] = useState("");
 
   // Store the password entered by the user
@@ -49,7 +50,7 @@ function Login() {
     setMessage("Login successful!");
     
     // Reload the app so the Navbar detects the new token
-    window.location.href = "/";
+    navigate(location.state?.from || "/", { replace: true });
   };
   return (
     <div className="login-page">

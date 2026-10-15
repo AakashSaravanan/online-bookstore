@@ -225,3 +225,81 @@ nav a {
   object-fit: contain;
   display: block;
 }
+
+.my-orders-page {
+  width: min(900px, 92%);
+  margin: 32px auto;
+}
+
+.my-orders-page > h1 {
+  margin-bottom: 8px;
+}
+
+.my-orders-empty,
+.my-order-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.my-orders-empty {
+  text-align: center;
+}
+
+.my-order-card h2 {
+  margin: 0 0 8px;
+}
+
+.my-order-header,
+.my-order-item,
+.my-order-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.my-order-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ddd;
+}
+
+.my-order-header p,
+.my-order-item p {
+  margin: 6px 0;
+  color: #666;
+}
+
+.my-order-status {
+  background: #e8f5e9;
+  color: #256029;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.my-order-item {
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.my-order-total {
+  padding-top: 16px;
+  font-size: 18px;
+}
+
+@media (max-width: 480px) {
+  .my-order-card {
+    padding: 14px;
+  }
+
+  .my-order-header,
+  .my-order-item {
+    align-items: flex-start;
+  }
+
+  .my-order-header {
+    flex-direction: column;
+  }
+}

@@ -185,6 +185,145 @@ const createOrder = async (req, res) => {
   }
 };
 
+
+// Retrieves only the orders belonging to the logged-in customer.
+const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      user: req.user.userId,
+    })
+      // Include book details so the frontend can display titles.
+      .populate("items.book", "title author image")
+      // Show the newest orders first.
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error("Get my orders error:", error);
+
+    return res.status(500).json({
+      message: "Failed to retrieve your orders.",
+    });
+  }
+};
+
+
+const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate("user", "name email")
+      .populate("items.book", "title author image")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error("Get all orders error:", error);
+    return res.status(500).json({
+      message: "Failed to retrieve orders.",
+    });
+  }
+};
+
+// Updates an order's status and restores stock if it is cancelled.
+const updateOrderStatus = async (req, res) => {
+  const { status } = req.body;
+  const allowedStatuses = [
+    "Processing",
+    "Confirmed",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
+
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      message: "Invalid order status.",
+    });
+  }
+
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({
+      message: "Invalid order ID.",
+    });
+  }
+
+  const allowedTransitions = {
+    Processing: ["Confirmed", "Cancelled"],
+    Confirmed: ["Shipped", "Cancelled"],
+    Shipped: ["Delivered"],
+    Delivered: [],
+    Cancelled: [],
+  };
+
+  const session = await mongoose.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      const order = await Order.findById(req.params.id).session(session);
+
+      if (!order) {
+        const error = new Error("Order not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      if (!allowedTransitions[order.status]?.includes(status)) {
+        const error = new Error(
+          `Cannot change order status from ${order.status} to ${status}.`
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+      // Return the reserved copies to inventory when an order is cancelled.
+      if (status === "Cancelled") {
+        for (const item of order.items) {
+          const stockUpdate = await Book.updateOne(
+            { _id: item.book },
+            { $inc: { stock: item.quantity } },
+            { session }
+          );
+
+          if (stockUpdate.matchedCount !== 1) {
+            const error = new Error(
+              "A book in this order no longer exists; cancellation could not restore all stock."
+            );
+            error.statusCode = 409;
+            throw error;
+          }
+        }
+      }
+
+      order.status = status;
+      await order.save({ session });
+    });
+
+    const updatedOrder = await Order.findById(req.params.id)
+      .populate("user", "name email")
+      .populate("items.book", "title author image");
+
+    return res.status(200).json({
+      message: "Order status updated successfully.",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Update order status error:", error);
+
+    return res.status(error.statusCode || 500).json({
+      message:
+        error.statusCode && error.statusCode !== 500
+          ? error.message
+          : "Failed to update order status.",
+    });
+  } finally {
+    await session.endSession();
+  }
+};
+
+
 module.exports = {
   createOrder,
+  getMyOrders,
+  getAllOrders,
+  updateOrderStatus,
 };

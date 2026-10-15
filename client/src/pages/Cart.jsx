@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { loadCart, saveCart } from "../utils/cart";
 
 function Cart() {
   // Load existing cart from localStorage
-  const [cartItems, setCartItems] = useState(() => {
-    const savedCart = localStorage.getItem("cart");
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  // Load the current user's cart
+  const [cartItems, setCartItems] = useState(() => loadCart());
 
-  // Save cart whenever it changes
+  //Save cart whenever it changes
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cartItems));
+    saveCart(cartItems);
   }, [cartItems]);
 
   // Increase quantity
