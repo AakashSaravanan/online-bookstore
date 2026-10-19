@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import API_BASE_URL from "../api";
 
-const API_URL = "http://localhost:5000/api/books";
+const API_URL = `${API_BASE_URL}/api/books`;
 
 const emptyForm = {
   title: "",
@@ -26,8 +27,6 @@ function Admin() {
   const token = localStorage.getItem("token");
 
   async function fetchBooks() {
-    setLoading(true);
-    setError("");
 
     try {
       const response = await fetch(API_URL);
@@ -45,8 +44,25 @@ function Admin() {
     }
   }
 
-  useEffect(() => {
-    fetchBooks();
+    useEffect(() => {
+    async function loadInitialBooks() {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load books.");
+        }
+
+        setBooks(data);
+      } catch (err) {
+        setError(err.message || "Unable to connect to the server.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadInitialBooks();
   }, []);
 
   function handleChange(event) {

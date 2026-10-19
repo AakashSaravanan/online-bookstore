@@ -1,5 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 // Read the user's role from the JWT token.
 function getUserRole() {
@@ -22,21 +21,10 @@ function getUserRole() {
 }
 
 function Navbar() {
-  const location = useLocation();
 
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    !!localStorage.getItem("token")
-  );
-
-  const [userRole, setUserRole] = useState(getUserRole);
-
-  // Refresh login and role information when the route changes.
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    setIsLoggedIn(!!token);
-    setUserRole(getUserRole());
-  }, [location.pathname]);
+  // Derive authentication information from the current token.
+  const isLoggedIn = !!localStorage.getItem("token");
+  const userRole = getUserRole();
 
   // Remove the token and return to the homepage.
   const handleLogout = () => {

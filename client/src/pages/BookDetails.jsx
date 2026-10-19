@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { loadCart, saveCart } from "../utils/cart";
+import API_BASE_URL from "../api";
 
 function BookDetails() {
   // Get the book ID from the URL
@@ -22,8 +23,7 @@ function BookDetails() {
   const [cartMessage, setCartMessage] = useState("");
 
   useEffect(() => {
-    // Fetch the specific book using the ID from the URL
-    fetch(`http://localhost:5000/api/books/${id}`)
+    fetch(`${API_BASE_URL}/api/books/${id}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error("Book not found");
@@ -32,14 +32,16 @@ function BookDetails() {
         return response.json();
       })
       .then((data) => {
-        // Show the data received from the backend in the browser console
-        console.log("Book data:", data);
-
-        // Save the book returned by the backend
         setBook(data);
+      })
+      .catch((err) => {
+        setError(err.message || "Unable to load the book.");
+      })
+      .finally(() => {
         setLoading(false);
-        })
+      });
   }, [id]);
+
   
 // Add the book to the cart and navigate to the cart page  
 const handleAddToCart = () => {

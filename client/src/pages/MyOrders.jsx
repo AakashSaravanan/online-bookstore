@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import API_BASE_URL from "../api";
 
 function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -12,7 +13,7 @@ function MyOrders() {
       try {
         const token = localStorage.getItem("token");
 
-        const response = await fetch("http://localhost:5000/api/orders/my-orders", {
+        const response = await fetch(`${API_BASE_URL}/api/orders/my-orders`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loadCart, clearCart } from "../utils/cart";
+import API_BASE_URL from "../api";
 
 // Displays checkout details and submits the order to the backend.
 function Checkout() {
@@ -74,7 +75,7 @@ function Checkout() {
     try {
       // Send book IDs, quantities, and shipping details to the API.
       // The backend calculates prices using MongoDB.
-      const response = await fetch("http://localhost:5000/api/orders", {
+      const response = await fetch(`${API_BASE_URL}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

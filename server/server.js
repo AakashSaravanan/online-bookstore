@@ -12,14 +12,33 @@ const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
 
-app.use(cors());            //Enable Cross-Origin Resource Sharing (CORS) to allow requests from different origins.
-app.use(express.json());    //Express will understand JSON requests bodies.
+// Allow requests from the configured frontend origins.
+// Use localhost during development and your deployed URL in production.
+const allowedOrigins = (
+    process.env.CLIENT_URL || "http://localhost:5173"
+)
+    .split(",")
+    .map((origin) => origin.trim());
 
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Requests without an Origin header include Postman and server-to-server calls.
+            if (!origin || allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            return callback(new Error("Not allowed by CORS"));
+        },
+    })
+);
+
+app.use(express.json());    //Express will understand JSON requests bodies.
 app.use("/api/auth", authRoutes);       //Tell Express where these routes belong
 app.use("/api/books", bookRoutes);      // Handles all book-related API requests
 app.use("/api/orders", orderRoutes);    // Handles all order-related API requests
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
     res.send("Online Bookstore API is running");
@@ -29,7 +48,7 @@ const startServer = async () => {
     await connectDB();
 
     app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`Server listening on port ${PORT}`);
     });
 };
 

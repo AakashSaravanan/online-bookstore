@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import API_BASE_URL from "../api";
 
 // Login page for existing users
 
@@ -22,7 +23,7 @@ function Login() {
     event.preventDefault();
 
     // Send the login details to the backend
-    const response = await fetch("http://localhost:5000/api/auth/login", {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

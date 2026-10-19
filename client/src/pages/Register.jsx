@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import API_BASE_URL from "../api";
 
 // Register page for new users
 
@@ -22,7 +23,7 @@ function Register() {
   event.preventDefault();
 
     // Send the registration details to the backend
-    const response = await fetch("http://localhost:5000/api/auth/register", {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",

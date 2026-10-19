@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Production build output
+dist/
+client/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local editor settings
+.vscode/
+.idea/
+.DS_Store
+
+# Dependencies
+node_modules/

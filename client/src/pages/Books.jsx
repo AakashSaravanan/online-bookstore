@@ -2,6 +2,7 @@
 // useEffect is used to run code when the component loads or when specific data changes.
 import { useEffect, useState } from 'react'
 import BookCard from '../components/BookCard'
+import API_BASE_URL from "../api";
 
 function Books() {
   const [books, setBooks] = useState([])        //The useState hook is used to create a state variable called books, which is initialized as an empty array. This state will hold the list of books fetched from the server.
@@ -11,29 +12,26 @@ function Books() {
   const [category, setCategory] = useState('')  //category stores the category selected by the user.
   
   useEffect(() => {
-  setLoading(true)
-  setError('')
+    fetch(
+      `${API_BASE_URL}/api/books?search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch books");
+        }
 
+        return response.json();
+      })
+      .then((data) => {
+        setBooks(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || "Unable to connect to the server.");
+        setLoading(false);
+      });
+  }, [search, category]);
 
-fetch(
-  `http://localhost:5000/api/books?search=${search}&category=${category}`
-)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error('Failed to fetch books')
-      }
-
-      return response.json()
-    })
-    .then((data) => {
-      setBooks(data)
-      setLoading(false)
-    })
-    .catch((error) => {
-      setError(error.message)
-      setLoading(false)
-    })
-}, [search, category])
   return (
     <div className="books-page">
         <h1>Books</h1>
@@ -42,12 +40,20 @@ fetch(
         type="text"
         placeholder="Search books..."
         value={search}
-        onChange={(event) => setSearch(event.target.value)}
+        onChange={(event) => {
+          setLoading(true);
+          setError("");
+          setSearch(event.target.value);
+        }}
         />
         <select
             className="category-select"
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
+            onChange={(event) => {
+              setLoading(true);
+              setError("");
+              setCategory(event.target.value);
+            }}
         >
             <option value="">All Categories</option>
             <option value="Fantasy">Fantasy</option>

@@ -1,8 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import API_BASE_URL from "../api";
 
-const API_URL = "http://localhost:5000/api/orders/admin";
+const API_URL = `${API_BASE_URL}/api/orders/admin`;
 
 const statuses = [
   "Processing",
@@ -36,10 +36,8 @@ function AdminOrders() {
 
   const token = localStorage.getItem("token");
 
-  async function fetchOrders() {
-    setLoading(true);
-    setError("");
-
+  useEffect(() => {
+  async function loadInitialOrders() {
     try {
       const response = await fetch(API_URL, {
         headers: { Authorization: `Bearer ${token}` },
@@ -59,9 +57,8 @@ function AdminOrders() {
     }
   }
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  loadInitialOrders();
+}, [token]);
 
   async function handleStatusChange(order, status) {
     if (status === "Cancelled") {
