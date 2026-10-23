@@ -44,8 +44,11 @@ function Login() {
     return;
     }
 
-    // Save the JWT token in the browser
+    // Save the JWT token in the browser.
     localStorage.setItem("token", data.token);
+
+    // Notify the Navbar that authentication has changed.
+    window.dispatchEvent(new Event("authChange"));
 
     // Show a message after successful login
     setMessage("Login successful!");
