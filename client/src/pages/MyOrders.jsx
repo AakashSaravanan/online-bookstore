@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import API_BASE_URL from "../api";
@@ -13,18 +14,19 @@ function MyOrders() {
       try {
         const token = localStorage.getItem("token");
 
-        const response = await fetch(`${API_BASE_URL}/api/orders/my-orders`, {
+        const response = await fetch(
+          `${API_BASE_URL}/api/orders/my-orders`,
+          {
             headers: {
-                Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
             },
-        });
+          }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load your orders."
-          );
+          throw new Error(data.message || "Failed to load your orders.");
         }
 
         setOrders(data);
@@ -50,83 +52,170 @@ function MyOrders() {
   const formatDate = (date) =>
     new Date(date).toLocaleDateString("en-IN", {
       day: "numeric",
-      month: "short",
+      month: "long",
       year: "numeric",
     });
 
+  // Generate a CSS class based on the order status.
+  const getStatusClass = (status) =>
+    `my-order-status status-${status?.toLowerCase() || "unknown"}`;
+
   if (loading) {
-    return <main className="my-orders-page"><p>Loading your orders...</p></main>;
+    return (
+      <main className="my-orders-page">
+        <div className="my-orders-loading">
+          <div className="my-orders-spinner"></div>
+          <p>Loading your orders...</p>
+        </div>
+      </main>
+    );
   }
 
   if (error) {
     return (
       <main className="my-orders-page">
-        <h2>My Orders</h2>
-        <p role="alert">{error}</p>
-        <Link to="/books">Browse books</Link>
+        <div className="my-orders-heading">
+          <span className="my-orders-eyebrow">YOUR ACCOUNT</span>
+          <h1>My Orders</h1>
+        </div>
+
+        <div className="my-orders-error" role="alert">
+          <h2>Unable to load your orders</h2>
+          <p>{error}</p>
+          <Link to="/books" className="my-orders-action">
+            Browse Books
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
     <main className="my-orders-page">
-      <h1>My Orders</h1>
-      <p>View your previous purchases and order status.</p>
 
+      {/* Page heading */}
+      <section className="my-orders-heading">
+        <div>
+          <span className="my-orders-eyebrow">YOUR ACCOUNT</span>
+          <h1>My Orders<span>.</span></h1>
+          <p>Every book has a story. Here's the history of yours.</p>
+        </div>
+
+        <Link to="/books" className="my-orders-browse-btn">
+          Continue Shopping
+          <span>→</span>
+        </Link>
+      </section>
+
+      {/* Order summary */}
+      <section className="my-orders-summary">
+        <div className="my-orders-summary-icon">▤</div>
+        <div>
+          <span>Total Orders</span>
+          <strong>{orders.length}</strong>
+        </div>
+      </section>
+
+      {/* Empty orders state */}
       {orders.length === 0 ? (
         <section className="my-orders-empty">
-          <h2>No orders yet</h2>
-          <p>Your purchases will appear here after checkout.</p>
-          <Link to="/books">Browse Books</Link>
+          <div className="my-orders-empty-icon">📚</div>
+          <h2>Your reading journey starts here.</h2>
+          <p>
+            You haven't placed any orders yet. Explore our collection
+            and discover your next favourite book.
+          </p>
+          <Link to="/books" className="my-orders-action">
+            Explore Books
+            <span>→</span>
+          </Link>
         </section>
       ) : (
-        <div className="my-orders-list">
+
+        /* Order list */
+        <section className="my-orders-list">
+          <div className="my-orders-list-heading">
+            <h2>Order History</h2>
+            <span>
+              {orders.length} {orders.length === 1 ? "order" : "orders"}
+            </span>
+          </div>
+
           {orders.map((order) => (
             <article className="my-order-card" key={order._id}>
+
+              {/* Order header */}
               <div className="my-order-header">
-                <div>
-                  <h2>Order #{order._id.slice(-8)}</h2>
-                  <p>Placed on {formatDate(order.createdAt)}</p>
+                <div className="my-order-info">
+                  <span>ORDER ID</span>
+                  <h3>#{order._id.slice(-8).toUpperCase()}</h3>
                 </div>
 
-                <span className="my-order-status">
-                  {order.status}
-                </span>
+                <div className="my-order-info my-order-date">
+                  <span>ORDER DATE</span>
+                  <p>{formatDate(order.createdAt)}</p>
+                </div>
+
+                <div className="my-order-status-wrapper">
+                  <span>ORDER STATUS</span>
+                  <span className={getStatusClass(order.status)}>
+                    {order.status}
+                  </span>
+                </div>
               </div>
 
+              {/* Purchased books */}
               <div className="my-order-items">
                 {order.items.map((item, index) => (
                   <div
                     className="my-order-item"
                     key={`${item.book?._id || "deleted"}-${index}`}
                   >
-                    <div>
-                      <strong>
-                        {item.book?.title || "Book no longer available"}
-                      </strong>
+                    <div className="my-order-book">
 
-                      {item.book?.author && (
-                        <p>by {item.book.author}</p>
+                      {item.book?.image ? (
+                        <img
+                        src={`/images/${item.book.image}`}
+                        alt={item.book?.title || "Book cover"}
+                        className="my-order-book-image"
+                      />
+                      ) : (
+                        <div className="my-order-book-placeholder">
+                          BOOK
+                        </div>
                       )}
 
-                      <p>Quantity: {item.quantity}</p>
+                      <div className="my-order-book-details">
+                        <h4>
+                          {item.book?.title || "Book no longer available"}
+                        </h4>
+
+                        {item.book?.author && (
+                          <p>by {item.book.author}</p>
+                        )}
+
+                        <span>Quantity: {item.quantity}</span>
+                      </div>
                     </div>
 
-                    <strong>
+                    <strong className="my-order-item-price">
                       {formatPrice(item.price * item.quantity)}
                     </strong>
                   </div>
                 ))}
               </div>
 
-              <div className="my-order-total">
-                <span>Order Total</span>
+              {/* Order total */}
+              <div className="my-order-footer">
+                <span>Total Amount</span>
                 <strong>{formatPrice(order.totalAmount)}</strong>
               </div>
+
             </article>
           ))}
-        </div>
+        </section>
       )}
+
     </main>
   );
 }

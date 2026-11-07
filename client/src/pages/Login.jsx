@@ -1,95 +1,154 @@
+
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import API_BASE_URL from "../api";
 
-// Login page for existing users
-
 function Login() {
-
   const navigate = useNavigate();
   const location = useLocation();
-  // Store the email entered by the user
+
   const [email, setEmail] = useState("");
-
-  // Store the password entered by the user
   const [password, setPassword] = useState("");
-
-    // Store a message to show after login
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-    // Handle the login form submission
   const handleSubmit = async (event) => {
-    // Prevent the browser from refreshing the page
     event.preventDefault();
+    setMessage("");
+    setLoading(true);
 
-    // Send the login details to the backend
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-            email: email,
-            password: password,
-        }),
-    });
+        body: JSON.stringify({ email, password }),
+      });
 
+      const data = await response.json();
 
-    // Convert the backend response from JSON into a JavaScript object
-    const data = await response.json();
+      if (!response.ok) {
+        setMessage(data.message || "Login failed. Please try again.");
+        return;
+      }
 
-    // Check whether the backend accepted the login
-    if (!response.ok) {
-    setMessage(data.message);
-    return;
+      localStorage.setItem("token", data.token);
+      window.dispatchEvent(new Event("authChange"));
+
+      navigate(location.state?.from || "/", { replace: true });
+    } catch {
+      setMessage("Unable to connect to the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    // Save the JWT token in the browser.
-    localStorage.setItem("token", data.token);
-
-    // Notify the Navbar that authentication has changed.
-    window.dispatchEvent(new Event("authChange"));
-
-    // Show a message after successful login
-    setMessage("Login successful!");
-    
-    // Reload the app so the Navbar detects the new token
-    navigate(location.state?.from || "/", { replace: true });
   };
+
   return (
-    <div className="login-page">
-        <h1>Login</h1>
+    <div className="auth-page">
+      <div className="auth-container">
 
-        <form className="login-form" onSubmit={handleSubmit}>
-        {/* Email input */}
-        <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-        />
+        <div className="auth-brand-panel">
+          <div className="auth-brand-content">
+            <Link to="/" className="auth-brand-logo">
+              BOOKSHELF<span>.</span>
+            </Link>
 
-        {/* Password input */}
-        <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-        />
+            <div>
+              <p className="auth-eyebrow">YOUR NEXT CHAPTER STARTS HERE</p>
+              <h1>Welcome back to your world of stories.</h1>
+              <p className="auth-brand-description">
+                Discover new perspectives, revisit timeless classics,
+                and find the books that stay with you.
+              </p>
+            </div>
 
-        {/* Login button */}
-        <button>Login</button>
-        </form>
+            <div className="auth-brand-footer">
+              A good book is a journey worth taking.
+            </div>
+          </div>
+        </div>
 
-        {/* Show the login message when one exists */}
-        {message && <p>{message}</p>}
-        {/* Link to the registration page */}
-        <p>
-            Don't have an account?{" "}
-            <Link to="/register">Register</Link>
-        </p>
+        <div className="auth-form-panel">
+          <div className="auth-form-wrapper">
+
+            <p className="auth-form-eyebrow">WELCOME BACK</p>
+            <h2>Sign in to your account</h2>
+            <p className="auth-subtitle">
+              Enter your details to continue exploring.
+            </p>
+
+            <form className="auth-form" onSubmit={handleSubmit}>
+
+              <div className="auth-field">
+                <label htmlFor="login-email">Email address</label>
+                <input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="login-password">Password</label>
+
+                <div className="auth-password-wrapper">
+                  <input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+
+                  <button
+                    type="button"
+                    className="auth-password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {message && (
+                <p className="auth-message auth-error" role="alert">
+                  {message}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="auth-submit-btn"
+                disabled={loading}
+              >
+                {loading ? "Signing in..." : "Sign In"}
+              </button>
+
+            </form>
+
+            <p className="auth-switch">
+              Don't have an account?
+              <Link to="/register"> Create an account</Link>
+            </p>
+
+            <Link to="/books" className="auth-back-link">
+              ← Back to exploring books
+            </Link>
+
+          </div>
+        </div>
+
+      </div>
     </div>
-    );
+  );
 }
 
 export default Login;

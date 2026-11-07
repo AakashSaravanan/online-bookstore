@@ -1,81 +1,147 @@
-// useState is used to store and update data in the component.
-// useEffect is used to run code when the component loads or when specific data changes.
 import { useEffect, useState } from 'react'
 import BookCard from '../components/BookCard'
-import API_BASE_URL from "../api";
+import API_BASE_URL from '../api'
 
 function Books() {
-  const [books, setBooks] = useState([])        //The useState hook is used to create a state variable called books, which is initialized as an empty array. This state will hold the list of books fetched from the server.
-  const [loading, setLoading] = useState(true)  //loading tracks whether the books are still being fetched.
-  const [error, setError] = useState('')        //error stores an error message if fetching books fails.
-  const [search, setSearch] = useState('')      //search stores the text entered by the user.
-  const [category, setCategory] = useState('')  //category stores the category selected by the user.
-  
+  const [books, setBooks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('')
+
   useEffect(() => {
-    fetch(
-      `${API_BASE_URL}/api/books?search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`
-    )
-      .then((response) => {
+    let ignore = false;
+
+    const loadBooks = async () => {
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/books?search=${encodeURIComponent(search)}&category=${encodeURIComponent(category)}`
+        );
+
         if (!response.ok) {
           throw new Error("Failed to fetch books");
         }
 
-        return response.json();
-      })
-      .then((data) => {
-        setBooks(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message || "Unable to connect to the server.");
-        setLoading(false);
-      });
+        const data = await response.json();
+
+        if (!ignore) {
+          setBooks(data);
+          setError("");
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(err.message || "Unable to connect to the server.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadBooks();
+
+    return () => {
+      ignore = true;
+    };
   }, [search, category]);
 
+  const clearFilters = () => {
+    setSearch("");
+    setCategory("");
+  };
+
   return (
-    <div className="books-page">
-        <h1>Books</h1>
-        <input
-        className="search-input"
-        type="text"
-        placeholder="Search books..."
-        value={search}
-        onChange={(event) => {
-          setLoading(true);
-          setError("");
-          setSearch(event.target.value);
-        }}
-        />
+    <main className="books-page">
+      <section className="catalogue-heading">
+        <p className="section-eyebrow">THE BOOKSHELF</p>
+        <h1>Find Your Next <span>Great Read.</span></h1>
+        <p className="catalogue-description">
+          Explore stories, discover new perspectives, and find books
+          worth keeping.
+        </p>
+      </section>
+
+      <section className="catalogue-toolbar">
+        <div className="catalogue-search">
+          <span className="search-symbol" aria-hidden="true">⌕</span>
+          <input
+            className="search-input"
+            type="search"
+            placeholder="Search by title or author..."
+            aria-label="Search books by title or author"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+
         <select
-            className="category-select"
-            value={category}
-            onChange={(event) => {
-              setLoading(true);
-              setError("");
-              setCategory(event.target.value);
-            }}
+          className="category-select"
+          aria-label="Filter books by category"
+          value={category}
+          onChange={(event) => setCategory(event.target.value)}
         >
-            <option value="">All Categories</option>
-            <option value="Fantasy">Fantasy</option>
-            <option value="Fiction">Fiction</option>
-            <option value="Science">Science</option>
-            <option value="Biography">Biography</option>
+          <option value="">All Categories</option>
+          <option value="Fantasy">Fantasy</option>
+          <option value="Fiction">Fiction</option>
+          <option value="Science">Science</option>
+          <option value="Biography">Biography</option>
         </select>
+      </section>
 
-        {loading && <p>Loading books...</p>}     
+      <section className="catalogue-results">
+        <div className="catalogue-results-heading">
+          <div>
+            <h2>Explore Our Collection</h2>
+            {!loading && !error && (
+              <p>
+                {books.length} {books.length === 1 ? 'book' : 'books'} found
+              </p>
+            )}
+          </div>
 
-        {error && <p>{error}</p>}
+          {(search || category) && (
+            <button
+              className="clear-filters"
+              type="button"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
 
-        {books.length === 0 && !loading && !error && (
-            <p>No books found.</p>
+        {loading && (
+          <p className="catalogue-message">Finding your next great read...</p>
         )}
 
-        <div className="books-grid">
+        {error && (
+          <p className="catalogue-message catalogue-error">{error}</p>
+        )}
+
+        {!loading && !error && books.length === 0 && (
+          <div className="catalogue-empty">
+            <h3>No books found</h3>
+            <p>Try another search term or choose a different category.</p>
+            <button
+              className="clear-filters"
+              type="button"
+              onClick={clearFilters}
+            >
+              View all books
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && books.length > 0 && (
+          <div className="books-grid">
             {books.map((book) => (
-                <BookCard key={book._id} book={book} />
+              <BookCard key={book._id} book={book} />
             ))}
-        </div>    
-    </div>
+          </div>
+        )}
+      </section>
+    </main>
   )
 }
 

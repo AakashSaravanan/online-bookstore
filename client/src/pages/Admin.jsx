@@ -14,6 +14,14 @@ const emptyForm = {
   image: "",
 };
 
+function formatPrice(amount) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 // Admin dashboard for managing books and inventory.
 function Admin() {
   const [books, setBooks] = useState([]);
@@ -26,8 +34,41 @@ function Admin() {
 
   const token = localStorage.getItem("token");
 
-  async function fetchBooks() {
+  // Fetch all books from the backend.
+  useEffect(() => {
+    let ignore = false;
 
+    const loadBooks = async () => {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load books.");
+        }
+
+        if (!ignore) {
+          setBooks(data);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(err.message || "Unable to connect to the server.");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadBooks();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const refreshBooks = async () => {
     try {
       const response = await fetch(API_URL);
       const data = await response.json();
@@ -37,33 +78,27 @@ function Admin() {
       }
 
       setBooks(data);
+      setError("");
     } catch (err) {
       setError(err.message || "Unable to connect to the server.");
-    } finally {
-      setLoading(false);
     }
-  }
+  };
 
-    useEffect(() => {
-    async function loadInitialBooks() {
-      try {
-        const response = await fetch(API_URL);
-        const data = await response.json();
+  // Dashboard statistics.
+  const totalBooks = books.length;
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to load books.");
-        }
+  const totalStock = books.reduce(
+    (total, book) => total + (Number(book.stock) || 0),
+    0
+  );
 
-        setBooks(data);
-      } catch (err) {
-        setError(err.message || "Unable to connect to the server.");
-      } finally {
-        setLoading(false);
-      }
-    }
+  const outOfStock = books.filter(
+    (book) => Number(book.stock) === 0
+  ).length;
 
-    loadInitialBooks();
-  }, []);
+  const lowStock = books.filter(
+    (book) => Number(book.stock) > 0 && Number(book.stock) <= 5
+  ).length;
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -97,8 +132,10 @@ function Admin() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // Create a new book or update an existing book.
   async function handleSubmit(event) {
     event.preventDefault();
+
     setError("");
     setMessage("");
 
@@ -149,14 +186,20 @@ function Admin() {
         throw new Error(data.message || "Failed to save the book.");
       }
 
-      setMessage(editingId ? "Book updated successfully." : "Book created successfully.");
+      setMessage(
+        editingId
+          ? "Book updated successfully."
+          : "Book created successfully."
+      );
+
       resetForm();
-      await fetchBooks();
+      await refreshBooks();
     } catch (err) {
       setError(err.message || "Unable to save the book.");
     }
   }
 
+  // Delete a book after confirmation.
   async function handleDelete(book) {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${book.title}"?`
@@ -186,12 +229,13 @@ function Admin() {
       }
 
       setMessage("Book deleted successfully.");
-      await fetchBooks();
+      await refreshBooks();
     } catch (err) {
       setError(err.message || "Unable to delete the book.");
     }
   }
 
+  // Adjust inventory using the existing stock API.
   async function handleStockUpdate(book) {
     const quantity = Number(stockChanges[book._id]);
 
@@ -233,188 +277,410 @@ function Admin() {
         [book._id]: "",
       }));
 
-      await fetchBooks();
+      await refreshBooks();
     } catch (err) {
       setError(err.message || "Unable to update stock.");
     }
   }
 
   return (
-    <main style={{ maxWidth: "1100px", margin: "30px auto", padding: "20px" }}>
-      <h1>Admin Dashboard</h1>
-      <p>
-        <Link to="/admin/orders">Manage Customer Orders</Link>
-      </p>
-      <p>Manage your bookstore's books and inventory.</p>
+    <main className="admin-dashboard">
 
-      {error && <p role="alert" style={{ color: "red" }}>{error}</p>}
-      {message && <p role="status" style={{ color: "green" }}>{message}</p>}
+      {/* Dashboard Header */}
+      <section className="admin-hero">
+        <div className="admin-hero-content">
+          <span className="admin-eyebrow">
+            BOOKSTORE MANAGEMENT
+          </span>
 
-      <section>
-        <h2>{editingId ? "Edit Book" : "Add New Book"}</h2>
+          <h1>Admin Dashboard</h1>
 
-        <form onSubmit={handleSubmit}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "12px",
-            }}
+          <p>
+            Manage your bookstore, organize your collection,
+            and keep track of your inventory.
+          </p>
+
+          <div className="admin-hero-actions">
+            <a href="#admin-book-form" className="admin-primary-link">
+              + Add New Book
+            </a>
+
+            <Link to="/admin/orders" className="admin-secondary-link">
+              Manage Orders <span>→</span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="admin-hero-decoration" aria-hidden="true">
+          <span>BOOKS</span>
+          <span>COLLECTION</span>
+        </div>
+      </section>
+
+      {/* Notifications */}
+      {error && (
+        <div className="admin-alert admin-alert-error" role="alert">
+          <span>!</span>
+          {error}
+          <button
+            type="button"
+            onClick={() => setError("")}
+            aria-label="Dismiss error"
           >
-            <input
-              name="title"
-              placeholder="Book title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-            />
+            ×
+          </button>
+        </div>
+      )}
 
-            <input
-              name="author"
-              placeholder="Author"
-              value={formData.author}
-              onChange={handleChange}
-              required
-            />
+      {message && (
+        <div className="admin-alert admin-alert-success" role="status">
+          <span>✓</span>
+          {message}
+          <button
+            type="button"
+            onClick={() => setMessage("")}
+            aria-label="Dismiss message"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
-            <input
-              name="category"
-              placeholder="Category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-            />
+      {/* Dashboard Statistics */}
+      <section className="admin-stats">
+        <article className="admin-stat-card">
+          <div className="admin-stat-icon">▤</div>
+          <div>
+            <span className="admin-stat-label">Total Titles</span>
+            <h2>{loading ? "—" : totalBooks}</h2>
+            <p>Books in your catalogue</p>
+          </div>
+        </article>
 
-            <input
-              name="price"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Price (₹)"
-              value={formData.price}
-              onChange={handleChange}
-              required
-            />
+        <article className="admin-stat-card">
+          <div className="admin-stat-icon">▥</div>
+          <div>
+            <span className="admin-stat-label">Available Stock</span>
+            <h2>{loading ? "—" : totalStock}</h2>
+            <p>Total available copies</p>
+          </div>
+        </article>
 
-            <input
-              name="stock"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="Stock"
-              value={formData.stock}
-              onChange={handleChange}
-              required
-            />
+        <article className="admin-stat-card">
+          <div className="admin-stat-icon">!</div>
+          <div>
+            <span className="admin-stat-label">Low Stock</span>
+            <h2>{loading ? "—" : lowStock}</h2>
+            <p>Titles with 5 or fewer copies</p>
+          </div>
+        </article>
 
-            <input
-              name="image"
-              placeholder="Image filename or URL"
-              value={formData.image}
+        <article className="admin-stat-card admin-stat-warning">
+          <div className="admin-stat-icon">○</div>
+          <div>
+            <span className="admin-stat-label">Out of Stock</span>
+            <h2>{loading ? "—" : outOfStock}</h2>
+            <p>Titles needing restocking</p>
+          </div>
+        </article>
+      </section>
+
+      {/* Add / Edit Book Form */}
+      <section className="admin-section" id="admin-book-form">
+        <div className="admin-section-heading">
+          <div>
+            <span className="admin-section-kicker">
+              CATALOGUE MANAGEMENT
+            </span>
+
+            <h2>{editingId ? "Edit Book" : "Add a New Book"}</h2>
+
+            <p>
+              {editingId
+                ? "Update the details of your selected book."
+                : "Add a new title to your bookstore collection."}
+            </p>
+          </div>
+
+          {editingId && (
+            <span className="admin-edit-badge">
+              EDITING MODE
+            </span>
+          )}
+        </div>
+
+        <form className="admin-book-form" onSubmit={handleSubmit}>
+          <div className="admin-form-grid">
+            <div className="admin-form-field">
+              <label htmlFor="admin-title">Book Title *</label>
+              <input
+                id="admin-title"
+                name="title"
+                placeholder="Enter book title"
+                value={formData.title}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="admin-form-field">
+              <label htmlFor="admin-author">Author *</label>
+              <input
+                id="admin-author"
+                name="author"
+                placeholder="Enter author's name"
+                value={formData.author}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="admin-form-field">
+              <label htmlFor="admin-category">Category *</label>
+              <input
+                id="admin-category"
+                name="category"
+                placeholder="e.g. Fiction, Fantasy"
+                value={formData.category}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="admin-form-field">
+              <label htmlFor="admin-price">Price (₹) *</label>
+              <input
+                id="admin-price"
+                name="price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter price"
+                value={formData.price}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="admin-form-field">
+              <label htmlFor="admin-stock">Available Stock *</label>
+              <input
+                id="admin-stock"
+                name="stock"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Enter quantity"
+                value={formData.stock}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="admin-form-field">
+              <label htmlFor="admin-image">Book Image</label>
+              <input
+                id="admin-image"
+                name="image"
+                placeholder="Image filename or URL"
+                value={formData.image}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="admin-form-field admin-description-field">
+            <label htmlFor="admin-description">Book Description</label>
+            <textarea
+              id="admin-description"
+              name="description"
+              placeholder="Write a short description about this book..."
+              value={formData.description}
               onChange={handleChange}
+              rows={5}
             />
           </div>
 
-          <textarea
-            name="description"
-            placeholder="Book description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={4}
-            style={{ display: "block", width: "100%", marginTop: "12px" }}
-          />
+          <div className="admin-form-footer">
+            <p>* Required fields</p>
 
-          <button type="submit" style={{ marginTop: "12px" }}>
-            {editingId ? "Save Changes" : "Add Book"}
-          </button>
+            <div className="admin-form-actions">
+              {editingId && (
+                <button
+                  type="button"
+                  className="admin-cancel-button"
+                  onClick={resetForm}
+                >
+                  Cancel
+                </button>
+              )}
 
-          {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              style={{ marginLeft: "10px" }}
-            >
-              Cancel Edit
-            </button>
-          )}
+              <button type="submit" className="admin-submit-button">
+                {editingId ? "Save Changes" : "+ Add Book"}
+              </button>
+            </div>
+          </div>
         </form>
       </section>
 
-      <hr style={{ margin: "30px 0" }} />
+      {/* Inventory Management */}
+      <section className="admin-section admin-inventory-section">
+        <div className="admin-section-heading admin-inventory-heading">
+          <div>
+            <span className="admin-section-kicker">
+              YOUR COLLECTION
+            </span>
 
-      <section>
-        <h2>Manage Books ({books.length})</h2>
+            <h2>Book Inventory</h2>
+
+            <p>
+              Manage your books, prices, and stock availability.
+            </p>
+          </div>
+
+          <span className="admin-inventory-count">
+            {loading ? "Loading..." : `${totalBooks} TITLES`}
+          </span>
+        </div>
 
         {loading ? (
-          <p>Loading books...</p>
+          <div className="admin-loading">
+            <div className="admin-loader"></div>
+            <p>Loading your inventory...</p>
+          </div>
         ) : books.length === 0 ? (
-          <p>No books found.</p>
+          <div className="admin-empty-state">
+            <span>▤</span>
+            <h3>Your inventory is empty</h3>
+            <p>Add your first book to start building your collection.</p>
+            <a href="#admin-book-form" className="admin-submit-button">
+              + Add Your First Book
+            </a>
+          </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                textAlign: "left",
-              }}
-            >
+          <div className="admin-table-wrapper">
+            <table className="admin-inventory-table">
               <thead>
                 <tr>
-                  <th style={{ padding: "10px" }}>Title</th>
-                  <th style={{ padding: "10px" }}>Price</th>
-                  <th style={{ padding: "10px" }}>Stock</th>
-                  <th style={{ padding: "10px" }}>Actions</th>
+                  <th>BOOK DETAILS</th>
+                  <th>CATEGORY</th>
+                  <th>PRICE</th>
+                  <th>STOCK</th>
+                  <th>INVENTORY ACTIONS</th>
                 </tr>
               </thead>
 
               <tbody>
-                {books.map((book) => (
-                  <tr key={book._id}>
-                    <td style={{ padding: "10px" }}>
-                      <strong>{book.title}</strong>
-                      <br />
-                      <small>{book.author}</small>
-                    </td>
+                {books.map((book) => {
+                  const stock = Number(book.stock) || 0;
 
-                    <td style={{ padding: "10px" }}>₹{book.price}</td>
+                  return (
+                    <tr key={book._id}>
+                      <td>
+                        <div className="admin-book-info">
+                          <div className="admin-book-thumbnail">
+                            {book.image ? (
+                              <img
+                                src={
+                                  book.image.startsWith("http")
+                                    ? book.image
+                                    : `/images/${book.image}`
+                                }
+                                alt={book.title}
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <span>BOOK</span>
+                            )}
+                          </div>
 
-                    <td style={{ padding: "10px" }}>{book.stock}</td>
+                          <div className="admin-book-text">
+                            <strong>{book.title}</strong>
+                            <span>{book.author}</span>
+                          </div>
+                        </div>
+                      </td>
 
-                    <td style={{ padding: "10px", minWidth: "250px" }}>
-                      <button type="button" onClick={() => handleEdit(book)}>
-                        Edit
-                      </button>{" "}
+                      <td>
+                        <span className="admin-category-tag">
+                          {book.category}
+                        </span>
+                      </td>
 
-                      <button type="button" onClick={() => handleDelete(book)}>
-                        Delete
-                      </button>
+                      <td>
+                        <strong className="admin-book-price">
+                          {formatPrice(book.price)}
+                        </strong>
+                      </td>
 
-                      <div style={{ marginTop: "10px" }}>
-                        <input
-                          type="number"
-                          step="1"
-                          value={stockChanges[book._id] ?? ""}
-                          placeholder="+3 or -2"
-                          aria-label={`Stock change for ${book.title}`}
-                          onChange={(event) =>
-                            setStockChanges((previous) => ({
-                              ...previous,
-                              [book._id]: event.target.value,
-                            }))
-                          }
-                          style={{ width: "100px" }}
-                        />{" "}
-
-                        <button
-                          type="button"
-                          onClick={() => handleStockUpdate(book)}
+                      <td>
+                        <span
+                          className={`admin-stock-badge ${
+                            stock === 0
+                              ? "stock-out"
+                              : stock <= 5
+                                ? "stock-low"
+                                : "stock-available"
+                          }`}
                         >
-                          Update Stock
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {stock === 0
+                            ? "Out of stock"
+                            : stock <= 5
+                              ? `${stock} left`
+                              : `${stock} available`}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="admin-inventory-actions">
+                          <div className="admin-action-buttons">
+                            <button
+                              type="button"
+                              className="admin-edit-button"
+                              onClick={() => handleEdit(book)}
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              className="admin-delete-button"
+                              onClick={() => handleDelete(book)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+
+                          <div className="admin-stock-controls">
+                            <input
+                              type="number"
+                              step="1"
+                              value={stockChanges[book._id] ?? ""}
+                              placeholder="+3 / -2"
+                              aria-label={`Stock change for ${book.title}`}
+                              onChange={(event) =>
+                                setStockChanges((previous) => ({
+                                  ...previous,
+                                  [book._id]: event.target.value,
+                                }))
+                              }
+                            />
+
+                            <button
+                              type="button"
+                              className="admin-stock-button"
+                              onClick={() => handleStockUpdate(book)}
+                            >
+                              Update
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
